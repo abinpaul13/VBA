@@ -1,0 +1,104 @@
+Sub GenerateOfferLetter_New()
+    Dim wsData As Worksheet
+    Dim wdApp As Object
+    Dim wdDoc As Object
+    Dim templatePath As String
+    Dim offerTemplate As String
+    Dim newDocumentPath As String
+    
+    ' Determine the selected sheet based on user input (e.g., MSA or PO)
+    Dim selectedSheetName As String
+    Dim optionForm As OptionSelectionFor
+    
+    ' Create an instance of the UserForm
+    Set optionForm = New OptionSelectionFor
+    
+    ' Display the UserForm as modal
+    optionForm.Show vbModal
+    
+    ' Retrieve the selected option from the UserForm
+    If optionForm.MSA.Value = True Then
+        selectedSheetName = "MSA"
+    ElseIf optionForm.PO.Value = True Then
+        selectedSheetName = "PO"
+    ElseIf optionForm.Offer.Value = True Then
+        selectedSheetName = "Offer"
+    End If
+    
+    ' Use the selected option
+    MsgBox "Selected Sheet Name: " & selectedSheetName
+    
+    ' Clean up
+    Set optionForm = Nothing
+    
+    ' Validate the selected sheet name
+    If selectedSheetName <> "MSA" And selectedSheetName <> "PO" And selectedSheetName <> "Offer" Then
+        MsgBox "Invalid sheet name. Please enter 'MSA' or 'PO' or 'Offer'.", vbExclamation
+        Exit Sub
+    End If
+ 
+    templatePath = "C:\Users\Abin\Desktop\Offer_Automatic_Generation_Process\Templates\"
+    filePath = "C:\Users\Abin\Desktop\Offer_Automatic_Generation_Process\Onboarding Documents\Onboarding_Template.xlsx"
+    Set work_Book1 = Workbooks.Open(Filename:=filePath)
+    
+    Select Case selectedSheetName
+        Case "MSA"
+            ' Open the Excel workbook and retrieve data
+            Set wsData = work_Book1.Sheets(selectedSheetName)
+            
+            ' Select the MSA template
+            offerTemplate = templatePath & "MSA_Template.docx"
+            
+        Case "PO"
+            ' Open the Excel workbook and retrieve data
+            Set wsData = work_Book1.Sheets(selectedSheetName)
+            
+            ' Select the PO template
+            offerTemplate = templatePath & "PO_Template.docx"
+            
+        Case "Offer"
+            ' Open the Excel workbook and retrieve data
+            Set wsData = work_Book1.Sheets(selectedSheetName)
+            
+            ' Select the Offer template
+            offerTemplate = templatePath & "Offer Letter_W2_Template.docx"
+    End Select
+    
+    ' Check if a Word application instance is already open
+    On Error Resume Next
+    Set wdApp = GetObject(, "Word.Application")
+    On Error GoTo 0
+    
+    ' If no instance is found, create a new one
+    If wdApp Is Nothing Then
+        Set wdApp = CreateObject("Word.Application")
+        wdApp.Visible = True ' Set to True for debugging purposes; set to False for production
+    End If
+    
+    ' Open the selected template
+    Set wdDoc = wdApp.Documents.Open(offerTemplate)
+    
+    ' Replace placeholders in the template with actual data from Excel
+    Select Case selectedSheetName
+        Case "MSA"
+            MSA_ReplacePlaceholdersInWordTemplate wdDoc, wsData
+        Case "PO"
+            PO_ReplacePlaceholdersInWordTemplate wdDoc, wsData
+        Case "Offer"
+            W2_Offer_ReplacePlaceholdersInWordTemplate wdDoc, wsData
+    End Select
+    
+    ' Save the modified Word document as a new file
+    todayDate = Format(Date, "mmmm-dd-yyyy")
+    newDocumentPath = "C:\Users\Abin\Desktop\Offer_Automatic_Generation_Process\Generated Documents" & "\New " & selectedSheetName & "_" & todayDate & ".docx"
+    wdDoc.SaveAs2 Filename:=newDocumentPath, FileFormat:=wdFormatDocumentDefault ' Save as Word document format
+    
+    ' Close the Word document
+    wdDoc.Close False
+    
+    ' Clean up
+    Set wdDoc = Nothing
+    Set wdApp = Nothing
+    
+    MsgBox "New document saved as: " & newDocumentPath, vbInformation
+End Sub
