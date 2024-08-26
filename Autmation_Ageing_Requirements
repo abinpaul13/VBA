@@ -1,0 +1,524 @@
+Sub Automation_Macro()
+
+Dim wb As Workbook
+Dim sheetName As String
+Dim filePath As String
+Dim cellValue As Variant
+Dim cellRange As Range
+Dim a As Long
+Dim b As Long
+Dim c As Long
+Dim d As Long
+                   
+            
+Dim rowCount As Long
+Dim columnCount As Long
+Dim rowCount1 As Long
+    
+Dim filteredRange As Range
+Dim destSheet As Worksheet
+Dim destRange As Range
+    
+Dim filteredRange1 As Range
+Dim destSheet1 As Worksheet
+Dim destRange1 As Range
+    
+Dim filteredRange2 As Range
+Dim destSheet2 As Worksheet
+Dim destRange2 As Range
+    
+Dim filteredRange3 As Range
+Dim destSheet3 As Worksheet
+Dim destRange3 As Range
+    
+Dim endColumn As Long
+Dim result As Variant
+    
+Dim PTCache As PivotCache
+Dim pt As PivotTable
+Dim wsData As Worksheet
+Dim wsPivot As Worksheet
+Dim ptRange As Range
+Dim ptField As PivotField
+Dim Range1 As Range
+Dim columnLetter As String
+
+Dim targetRange As Range
+'Dim dateIssued As String --this is not working
+'Dim externSubmission As String -- this is not working
+Dim dateIssuedColumn As Integer
+Dim externSubmissionColumn As Integer
+    
+Dim excelUrl As String
+Dim customSortOrder As Variant
+Dim ptItem As PivotItem
+Dim column1Range As Range
+Dim criteriaRange1 As Range
+Dim criteriaRange2 As Range
+Dim lastRow As Long
+Dim lastRow1 As Long
+
+filePath = InputBox("Please enter your Excel URL address:")
+'filePath = "C:\Users\Abin\Desktop\Automation\New Automation_Kroger_10_01_2022_9_01_2023.xlsm"
+
+sheetName = InputBox("Enter the new sheet name:")
+If sheetName <> "" Then
+        ' Replace "Sheet1" with the name of the sheet you want to rename
+        ActiveSheet.Name = sheetName
+Else
+        MsgBox "No sheet name provided."
+End If
+
+
+'sheetName = "Base"
+        
+Set wb = Workbooks.Open(filePath)
+wb.Sheets(sheetName).Activate
+             
+Set ws = ThisWorkbook.Sheets("Base")
+rowCount = ws.UsedRange.Rows.Count
+columnCount = ws.UsedRange.Columns.Count
+MsgBox "Total Rows: " & rowCount & " Total Columns: " & columnCount
+    
+ws.Columns(1).Insert Shift:=xlToRight
+Cells(1, 1).Value = "Rec_Candid_JID"
+lastColumn = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+lastRow = ws.Cells(Rows.Count, 1).End(xlUp).Row
+
+For i = 1 To lastColumn
+    If ws.Cells(1, i).Value = "Submitted By" Then
+    a = i
+    'MsgBox "value of a is" & a
+    End If
+Next i
+
+For i = 1 To lastColumn
+    If ws.Cells(1, i).Value = "Candidate" Then
+    b = i
+    'MsgBox "value of b is" & b
+    End If
+Next i
+
+For i = 1 To lastColumn
+    If ws.Cells(1, i).Value = "JobDiva Ref. #" Then
+    c = i
+    'MsgBox "value of c is" & c
+    End If
+Next i
+   
+For i = 2 To rowCount
+    Cells(i, 1) = Cells(i, a) & Cells(i, b) & Cells(i, c)
+Next i
+        
+
+'######### Customer Group Consolidation
+
+Set ws = ThisWorkbook.Sheets("Base")
+lastColumn = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+lastRow = ws.Cells(Rows.Count, 1).End(xlUp).Row
+Cells(1, lastColumn + 1) = "Customer Group Edited"
+
+For i = 1 To lastColumn
+    If ws.Cells(1, i).Value = "Company" Then
+    d = i
+    'MsgBox "value of d is" & d
+    End If
+Next i
+
+For i = 1 To lastColumn
+    If ws.Cells(1, i).Value = "Manager" Then
+    e = i
+    MsgBox "value of e is" & e
+    End If
+Next i
+
+For j = 2 To lastRow
+    Select Case IsEmpty(ws.Cells(j, d).Value)
+        Case True
+            ws.Cells(j, lastColumn + 1).Value = Cells(j, e)
+        Case False
+            ws.Cells(j, lastColumn + 1).Value = Cells(j, d)
+    End Select
+Next j
+            
+
+Cells(1, lastColumn + 2).Value = "Customer Group"
+
+For k = 2 To lastRow
+    
+    cellValue = Cells(k, lastColumn + 1).Value
+         
+    Select Case True
+    
+    Case InStr(1, cellValue, "Linked", vbTextCompare) > 0
+        cellValue = "LinkedIn"
+    Case InStr(1, cellValue, "Walmart", vbTextCompare) > 0
+        cellValue = "Walmart"
+    Case InStr(1, cellValue, "Kroger", vbTextCompare) > 0
+        cellValue = "Kroger"
+    Case InStr(1, cellValue, "Inspire Brand", vbTextCompare) > 0
+        cellValue = "Inspire Brand"
+    Case InStr(1, cellValue, "Delta Dental", vbTextCompare) > 0
+        cellValue = "Delta Dental"
+    Case InStr(1, cellValue, "Apple", vbTextCompare) > 0
+        cellValue = "Apple"
+    Case InStr(1, cellValue, "Optum", vbTextCompare) > 0
+        cellValue = "Optum"
+    Case InStr(1, cellValue, "Curology", vbTextCompare) > 0
+        cellValue = "Curology"
+    Case InStr(1, cellValue, "Visa Visa", vbTextCompare) > 0
+        cellValue = "Visa"
+    
+    End Select
+    
+    Cells(k, lastColumn + 2).Value = cellValue
+    
+Next k
+     
+
+ '######Internal submission data extraction
+Set ws = ThisWorkbook.Sheets("Base")
+ColumnName = "Internal Submit Date"
+Condition = "<>"
+Set cellRange = ws.UsedRange
+cellRange.AutoFilter Field:=cellRange.Rows(1).Find(ColumnName).Column, Criteria1:=Condition
+Set filteredRange = cellRange.SpecialCells(xlCellTypeVisible)
+Set destSheet = ThisWorkbook.Sheets.Add
+destSheet.Name = "Internal"
+Set destRange = destSheet.Range("A1")
+filteredRange.Copy Destination:=destRange ' Copy the filtered data to the new sheet
+            
+Set ws = ThisWorkbook.Sheets("Base")
+cellRange.AutoFilter
+    
+    
+    '######External submission data extraction
+columnName1 = "External Submit Date"
+condition1 = "<>"
+cellRange.AutoFilter Field:=cellRange.Rows(1).Find(columnName1).Column, Criteria1:=condition1
+Set filteredRange1 = cellRange.SpecialCells(xlCellTypeVisible)
+Set destSheet1 = ThisWorkbook.Sheets.Add
+destSheet1.Name = "External"
+Set destRange1 = destSheet1.Range("A1")
+' Copy the filtered data to the new sheet
+filteredRange1.Copy Destination:=destRange1
+    
+Set ws = ThisWorkbook.Sheets("Base")
+    cellRange.AutoFilter
+         
+        
+'#####vlookup for External
+
+Set ws = ThisWorkbook.Sheets("External")
+For i = 1 To lastColumn + 5
+    If ws.Cells(1, i).Value = "External Submit Date" Then
+        f = i
+    End If
+Next i
+
+' MsgBox "f is" & f
+
+Set ws = ThisWorkbook.Sheets("Internal")
+rowCount1 = ws.UsedRange.Rows.Count
+Set Cell = ws.Cells(1, lastColumn + 3)
+Cell.Value = "External_Date"
+wb.Sheets("Internal").Activate
+For i = 2 To rowCount1
+    Cells(i, lastColumn + 3).Formula = "=VLOOKUP(Internal!A:A,External!A:AY,42,FALSE)"
+Next i
+
+Set Cell = ws.Cells(1, lastColumn + 4)
+Cell.Value = "External_Submission"
+For i = 2 To rowCount1
+    If IsError(ws.Cells(i, lastColumn + 3).Value) Then
+        ws.Cells(i, lastColumn + 4).Value = "No"
+    Else
+        ws.Cells(i, lastColumn + 4).Value = "Yes"
+    End If
+Next i
+
+
+'## Adding column - "External Submission - Yes or No" in the Internal Sheet
+
+Set Cell = ws.Cells(1, lastColumn + 5)
+Cell.Value = "External_Count"
+columnName1 = "JobDiva Ref. #"
+columnName2 = "External_Submission"
+
+Set column1Range = ws.Rows(1).Find(What:=columnName1, LookIn:=xlValues, LookAt:=xlWhole, MatchCase:=False)
+Set column2Range = ws.Rows(1).Find(What:=columnName2, LookIn:=xlValues, LookAt:=xlWhole, MatchCase:=False)
+
+'MsgBox "column range is" & column1Range
+
+If Not column1Range Is Nothing Then
+        ' Find the last row in the found column
+    lastRow = ws.Cells(ws.Rows.Count, column1Range.Column).End(xlUp).Row
+    MsgBox "lastRow is" & lastRow
+Else
+    ' Handle the case where the column was not found
+    MsgBox columnName1 & " column not found.", vbExclamation
+End If
+    
+If Not column2Range Is Nothing Then
+        ' Find the last row in the found column
+    lastRow1 = ws.Cells(ws.Rows.Count, column1Range.Column).End(xlUp).Row
+    MsgBox "lastRow1 is" & lastRow1
+Else
+    ' Handle the case where the column was not found
+    MsgBox columnName2 & " column not found.", vbExclamation
+End If
+    
+    
+'Loop through the rows and apply the COUNTIFS logic with the WorksheetFunction
+        
+' Define the criteria ranges for COUNTIFS
+Set criteriaRange1 = ws.Range(ws.Cells(2, column1Range.Column), ws.Cells(lastRow, column1Range.Column))
+'Set criteriaRange2 = ws.Range(ws.Cells(2, ws.Range(columnName2 & "2").Column), ws.Cells(lastRow, ws.Range(columnName2 & "2").Column))
+Set criteriaRange2 = ws.Range(ws.Cells(2, column2Range.Column), ws.Cells(lastRow, column2Range.Column))
+        
+        
+For i = 2 To lastRow
+' Use WorksheetFunction.CountIfs to calculate the count with two criteria
+Dim countResult As Long
+countResult = Application.WorksheetFunction.CountIfs(criteriaRange1, ws.Cells(i, column1Range.Column).Value, criteriaRange2, "Yes")
+        
+' Write the count result to the specified column
+ws.Cells(i, lastColumn + 5).Value = countResult
+Next i
+
+'#### Adding Unique Job ID column.................
+Set Cell = ws.Cells(1, lastColumn + 6)
+Cell.Value = "Unique_JobID"
+
+columnName1 = "JobDiva Ref. #"
+Set column1Range = ws.Rows(1).Find(What:=columnName1, LookIn:=xlValues, LookAt:=xlWhole, MatchCase:=False)
+If Not column1Range Is Nothing Then
+        ' Find the last row in the found column
+    lastRow = ws.Cells(ws.Rows.Count, column1Range.Column).End(xlUp).Row
+    MsgBox "lastRow is" & lastRow
+Else
+    ' Handle the case where the column was not found
+    MsgBox columnName1 & " column not found.", vbExclamation
+End If
+
+' Define the criteria ranges for COUNTIFS
+
+For i = 2 To lastRow
+Set criteriaRange1 = ws.Range(ws.Cells(i, column1Range.Column), ws.Cells(lastRow, column1Range.Column))
+' Use WorksheetFunction.CountIfs to calculate the count with two criteria
+Dim countResult1 As Long
+countResult1 = Application.WorksheetFunction.CountIf(criteriaRange1, ws.Cells(i, column1Range.Column).Value)
+' Write the count result1 to the specified column
+ws.Cells(i, lastColumn + 6).Value = countResult1
+Next i
+
+
+'###### ### Adding Pivot Tables and Slicers for No External Submission
+Set ws = ThisWorkbook.Sheets.Add
+ws.Name = "noExternalSubmission"
+
+
+Set wsData = ThisWorkbook.Worksheets("Internal")
+Set wsPivot = ThisWorkbook.Worksheets("noExternalSubmission")
+
+lastRow = wsData.Cells(wsData.Rows.Count, 1).End(xlUp).Row
+lastColumn = wsData.Cells(1, wsData.Columns.Count).End(xlToLeft).Column
+Set ptRange = wsData.Range(wsData.Cells(1, 1), wsData.Cells(lastRow, lastColumn))
+
+
+'Set ptRange = wsData.Range("A1:BD2498") ' need to make it dynamic
+Set ptDestination = wsPivot.Range("A12")
+
+Set PTCache = ThisWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=ptRange)
+Set pt = wsPivot.PivotTables.Add(PivotCache:=PTCache, TableDestination:=ptDestination, TableName:="NewPivotTable1")
+
+With pt
+        
+    Set ptField = pt.PivotFields("Unique_JobID")
+    ptField.Orientation = xlPageField
+    filterValue = "1"
+    ptField.CurrentPage = filterValue
+    
+    'Set ptField = pt.PivotFields("Customer Group")
+    'ptField.Orientation = xlPageField
+    'filterValue = "Kroger"
+    'ptField.CurrentPage = filterValue
+        
+    Set ptField = pt.PivotFields("External_Count")
+    ptField.Orientation = xlPageField
+    filterValue = "0"
+    ptField.CurrentPage = filterValue
+     
+    Set ptField = pt.PivotFields("Customer Group")
+    ptField.Orientation = xlRowField
+         
+    Set ptField = pt.PivotFields("JobDiva Ref. #")
+    ptField.Orientation = xlRowField
+        
+    Set ptField = pt.PivotFields("Title")
+    ptField.Orientation = xlRowField
+        
+                
+    
+End With
+
+Range("A12").Select
+With ActiveSheet.PivotTables("NewPivotTable1")
+    .InGridDropZones = True
+    .RowAxisLayout xlTabularRow
+End With
+
+For Each ptField In pt.PivotFields
+    ptField.Subtotals = Array(False, False, False, False, False, False, False, False, False, False, False, False)
+Next ptField
+
+'For Each pt In ActiveSheet.PivotTables
+ '   pt.TableRange1.Columns.AutoFit
+'Next pt
+
+For Each pt In ActiveSheet.PivotTables
+Set Rng = pt.TableRange1.Columns
+Rng.ColumnWidth = 20
+Next pt
+
+
+
+
+  
+  
+'##### Calculations in External Sheet#####
+
+Set wsExternal = ThisWorkbook.Sheets("External")
+wsExternal.Activate
+
+
+lastcolumnExternal = wsExternal.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+lastrowExternal = wsExternal.Cells(Rows.Count, 1).End(xlUp).Row
+
+Cells(1, lastcolumnExternal + 1) = "Unique"
+Cells(1, lastcolumnExternal + 2) = "TAT - External Submission"
+Cells(1, lastcolumnExternal + 3) = "Days Category"
+
+For l = 2 To lastrowExternal
+    Set targetcell = Cells(l, lastcolumnExternal + 1)
+    targetcell.Formula = "=COUNTIF(A" & l & ":A" & lastrowExternal & ", A" & l & ")"
+Next l
+
+For m = 2 To lastrowExternal
+    Set targetcell2 = Cells(m, lastcolumnExternal + 2)
+    dateIssued = "B" & m
+    externSubmission = "AP" & m
+    targetcell2.Formula = "=NETWORKDAYS(" & dateIssued & ", " & externSubmission & ")"
+    
+    'targetcell2.Formula = "=NETWORKDAYS(B" & m & ", AP" & m & ")" '## need to find out B and AP
+Next m
+ 
+ 
+For n = 2 To lastrowExternal
+    cellValue1 = wsExternal.Cells(n, lastcolumnExternal + 2)
+    If cellValue1 > 20 Then
+        Category = "Greater than 20 Days"
+    ElseIf cellValue1 >= 10 Then
+        Category = "10 to 20 Days"
+    ElseIf cellValue1 >= 5 Then
+        Category = "5 to 10 Days"
+    ElseIf cellValue1 = 4 Then
+        Category = "Fourth Day"
+    ElseIf cellValue1 = 3 Then
+        Category = "Third Day"
+    ElseIf cellValue1 = 2 Then
+        Category = "Second Day"
+    ElseIf cellValue1 = 1 Then
+        Category = "Same Day"
+    ElseIf cellValue1 <= 0 Then
+        Category = "Negative TAT"
+    End If
+    wsExternal.Cells(n, lastcolumnExternal + 3).Value = Category
+
+Next n
+        
+ '###### ### Adding Pivot Tables and Slicers for external submission - category
+
+Set ws = ThisWorkbook.Sheets.Add
+ws.Name = "pivotData"
+
+
+Set wsData = ThisWorkbook.Worksheets("External")
+Set wsPivot = ThisWorkbook.Worksheets("pivotData")
+
+lastRow = wsData.Cells(wsData.Rows.Count, 1).End(xlUp).Row
+lastColumn = wsData.Cells(1, wsData.Columns.Count).End(xlToLeft).Column
+Set ptRange = wsData.Range(wsData.Cells(1, 1), wsData.Cells(lastRow, lastColumn))
+
+
+'Set ptRange = wsData.Range("A1:BD2498") ' need to make it dynamic
+Set ptDestination = wsPivot.Range("A12")
+
+Set PTCache = ThisWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=ptRange)
+Set pt = wsPivot.PivotTables.Add(PivotCache:=PTCache, TableDestination:=ptDestination, TableName:="NewPivotTable")
+
+With pt
+        
+    Set ptField = pt.PivotFields("Unique")
+    ptField.Orientation = xlPageField
+    filterValue = "1"
+    ptField.CurrentPage = filterValue
+    
+    'Set ptField = pt.PivotFields("Customer Group")
+    'ptField.Orientation = xlPageField
+    'filterValue = "Kroger"
+    'ptField.CurrentPage = filterValue
+        
+    
+    Set ptField = pt.PivotFields("JobDiva Ref. #")
+    ptField.Orientation = xlRowField
+        
+    Set ptField = pt.PivotFields("Title")
+    ptField.Orientation = xlRowField
+    
+    Set ptField = pt.PivotFields("Days Category")
+    ptField.Orientation = xlColumnField
+      
+' Define the custom sort order as an array
+    'customSortOrder = Array("Negative TAT", "Same Day", "Second Day", "Third Day", "Fourth Day", "5 to 10 Days", "10 to 20 Days", "Greater than 20 Days")
+                
+    Set ptField = pt.AddDataField(pt.PivotFields("Rec_Candid_JID"), "Count of Resumes", xlCount)
+    
+End With
+
+Range("A12").Select
+With ActiveSheet.PivotTables("NewPivotTable")
+    .InGridDropZones = True
+    .RowAxisLayout xlTabularRow
+End With
+
+For Each ptField In pt.PivotFields
+    ptField.Subtotals = Array(False, False, False, False, False, False, False, False, False, False, False, False)
+Next ptField
+
+'For Each pt In ActiveSheet.PivotTables
+ '   pt.TableRange1.Columns.AutoFit
+'Next pt
+
+For Each pt In ActiveSheet.PivotTables
+Set Rng = pt.TableRange1.Columns
+Rng.ColumnWidth = 20
+Next pt
+
+
+With ActiveWorkbook.SlicerCaches.Add2(ActiveSheet.PivotTables("NewPivotTable"), _
+        "Customer Group").Slicers.Add(ActiveSheet, , "Customer Group", "Customer Group", 4, 500, 400, 100)
+        .NumberOfColumns = 4
+End With
+'top,left, width,height
+
+'ActiveWorkbook.SlicerCaches("Slicer_Customer Group").Slicers("Customer Group"). _
+'         NumberOfColumns = 4
+
+ActiveWorkbook.SlicerCaches.Add2(ActiveSheet.PivotTables("NewPivotTable"), _
+    "Date Issued", , xlTimeline).Slicers.Add ActiveSheet, , _
+    "Date Issued", "Date Issued", 4, 4, 262.5, 108
+        
+        
+        
+End Sub
